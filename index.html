@@ -492,9 +492,27 @@ aman remember &lt;literally anything&gt;  # passed to AI for contextual interpre
     <ul>
         <li>Claude Code CLI installed</li>
         <li>Python 3.10+</li>
-        <li><code>ANTHROPIC_API_KEY</code> environment variable set</li>
+        <li><code>ANTHROPIC_API_KEY</code> environment variable set (see below)</li>
         <li>The <code>anthropic</code> Python package (<code>pip install anthropic</code>)</li>
     </ul>
+
+    <div class="card">
+        <div class="card-title">Setting up your API key</div>
+        <p>The amanuensis needs your Anthropic API key to evaluate conversations and generate summaries. Get one from <a href="https://console.anthropic.com/settings/keys">console.anthropic.com</a> if you don't have one.</p>
+        <p><strong>Windows:</strong></p>
+        <ol>
+            <li>Press <code>Win + R</code>, type <code>systempropertiesadvanced</code>, press Enter</li>
+            <li>Click <strong>Environment Variables</strong></li>
+            <li>Under "User variables", click <strong>New</strong></li>
+            <li>Name: <code>ANTHROPIC_API_KEY</code> — Value: your key (starts with <code>sk-ant-</code>)</li>
+            <li>Click OK, OK, OK</li>
+            <li>Restart your terminal and Claude Code</li>
+        </ol>
+        <p><strong>Mac/Linux:</strong></p>
+        <pre><code>echo 'export ANTHROPIC_API_KEY=your-key-here' >> ~/.bashrc
+source ~/.bashrc</code></pre>
+        <p>(Use <code>~/.zshrc</code> if you use zsh)</p>
+    </div>
 
     <h3>Quick Setup</h3>
     <p>Start a new Claude Code session in your desired root folder (e.g., where all your projects live) and paste this prompt:</p>
@@ -541,6 +559,7 @@ Please create this complete system in my current directory. Make sure to:
 5. Initialize the log files
 6. Install the package with `pip install -e .amanuensis` to enable the `aman` command
 7. Test that imports work and `aman --help` works
+8. Check if ANTHROPIC_API_KEY is set in the environment. If not, walk me through setting it up (it's required for the hooks to work)
 
 After setup, also explore my existing project folders and add a "foundational context" entry to the logs summarizing what projects exist here.</div>
     </div>
