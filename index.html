@@ -380,8 +380,8 @@
     <div class="diagram">┌─────────────────────┐      Hook (stdin JSON)      ┌─────────────────────┐
 │  Your Claude        │ ──────────────────────────▶ │  Amanuensis Agent   │
 │  Session            │                             │  (separate process) │
-│                     │                             │  (own API context)  │
-│  [your context]     │                             │  [isolated context] │
+│                     │ ◀─── MCP Tools ────────────▶│  (own API context)  │
+│  [your context]     │  search, remember, topic    │  [isolated context] │
 └─────────────────────┘                             └──────────┬──────────┘
                                                                │
                                                                ▼
@@ -439,6 +439,10 @@
             <div class="feature-title">📁 Cross-Project Memory</div>
             <div class="feature-desc">One unified memory across all projects in your watched folder.</div>
         </div>
+        <div class="feature">
+            <div class="feature-title">🔌 MCP Integration</div>
+            <div class="feature-desc">Claude has direct access to memory tools — search, remember, and summarize without leaving the conversation.</div>
+        </div>
     </div>
 
     <h2 id="user-guide">User Guide</h2>
@@ -446,8 +450,22 @@
     <h3>Automatic Logging</h3>
     <p>Once installed, the amanuensis works automatically. Just use Claude Code normally in any subfolder of your watched directory. Meaningful moments are captured without any action on your part.</p>
 
-    <h3>Commands</h3>
-    <p>These are <strong>terminal commands</strong>, not chat messages. Run them in a separate terminal window, or ask Claude to run them for you (e.g., "run <code>aman search auth</code>").</p>
+    <h3>MCP Tools (Claude has direct access)</h3>
+    <p>Claude can search your memory directly without you running any commands. Just ask naturally:</p>
+    <ul>
+        <li>"What did we decide about authentication last week?"</li>
+        <li>"Search my conversation history for database migrations"</li>
+        <li>"Remember that we chose PostgreSQL for this project"</li>
+    </ul>
+    <p>Claude uses these MCP tools behind the scenes:</p>
+    <ul>
+        <li><code>search_memory(query)</code> — searches logs (no API tokens)</li>
+        <li><code>summarize_topic(topic)</code> — AI summary (uses tokens)</li>
+        <li><code>remember(note?)</code> — save to memory</li>
+    </ul>
+
+    <h3>CLI Commands</h3>
+    <p>You can also run these <strong>terminal commands</strong> directly, or ask Claude to run them for you:</p>
 
     <div class="card">
         <div class="card-title">Search for past conversations</div>
@@ -499,6 +517,7 @@ aman remember &lt;literally anything&gt;  # passed to AI for contextual interpre
         <li>Python 3.10+</li>
         <li><code>ANTHROPIC_API_KEY</code> environment variable set (see below)</li>
         <li>The <code>anthropic</code> Python package (<code>pip install anthropic</code>)</li>
+        <li>The <code>mcp</code> Python package (<code>pip install mcp</code>) — for MCP integration</li>
     </ul>
 
     <div class="card">
@@ -533,10 +552,11 @@ source ~/.bashrc</code></pre>
 - Runs as a SEPARATE PROCESS with its own API calls, so it doesn't impact my main session's context
 - Stores logs in a tiered system: current.md → archived logs → superlogs (compacted every 5 logs)
 - Provides CLI commands to query conversation history via the `aman` command
+- MCP server gives Claude direct access to memory tools (search, remember, summarize)
 
 **Architecture:**
-- Hook configuration in `.claude/settings.json`
-- Agent scripts in `.amanuensis/agent/` (config.py, process_turn.py, session_end.py, compact.py, search.py)
+- Hook and MCP configuration in user's global `~/.claude/settings.json`
+- Agent scripts in `.amanuensis/agent/` (config.py, process_turn.py, session_end.py, compact.py, search.py, mcp_server.py)
 - Logs in `.amanuensis/logs/` (current.md, log-NNN.md, superlog-NNN.md, index.json)
 - pyproject.toml for CLI entry point (`aman` command)
 
@@ -548,8 +568,16 @@ source ~/.bashrc</code></pre>
 - API key from ANTHROPIC_API_KEY environment variable
 - Batch interval: 30 seconds (to stay under free tier rate limits)
 
+**Transcript format (CRITICAL - the hook reads this):**
+- Transcript is JSONL at the path provided in hook stdin JSON as `transcript_path`
+- User messages: `{"type": "user", "message": {"content": "the user's text"}}`
+- Tool results: `{"type": "user", "message": {"content": [{"type": "tool_result", ...}]}}`
+- Assistant messages: `{"type": "assistant", "message": {"content": [{"type": "text", "text": "..."}, ...]}}`
+- IMPORTANT: Both real user messages AND tool results have `type: "user"` — distinguish them by checking if `message.content` is a string (real user) vs array with tool_result blocks
+- Walk backwards through entries to find latest exchange, skipping tool_result entries
+
 **The hooks should:**
-1. Stop hook (process_turn.py): Buffer exchanges and batch-process every 30 seconds (rate limiting for free tier's 5 req/min limit). Evaluate meaningfulness, append worthy content to current.md
+1. Stop hook (process_turn.py): Read transcript, find latest user/assistant exchange (skipping tool_results), buffer exchanges, batch-process every 30 seconds. Evaluate meaningfulness, append worthy content to current.md
 2. SessionEnd hook (session_end.py): Mark session end, update index, check compaction
 
 **Rate limit handling:**
@@ -563,15 +591,21 @@ source ~/.bashrc</code></pre>
 - `aman remember` — saves last 3 interactions verbatim, no AI involved
 - `aman remember <literally anything>` — passed to AI for contextual interpretation
 
+**MCP Tools to expose (via mcp_server.py):**
+- `search_memory(query)` — same as aman search, no API tokens
+- `summarize_topic(topic)` — same as aman topic, uses tokens
+- `remember(note?)` — same as aman remember, tokens only if note provided
+
 Please create this complete system in my current directory. Make sure to:
 1. Create all necessary folders
-2. Write all Python scripts
-3. Create pyproject.toml with `aman` as the CLI entry point
-4. Configure the hooks in .claude/settings.json
+2. Write all Python scripts including mcp_server.py for MCP integration
+3. Create pyproject.toml with `aman` as the CLI entry point (include mcp as dependency)
+4. Configure hooks AND mcpServers in USER'S GLOBAL settings at ~/.claude/settings.json (not project-level)
 5. Initialize the log files
 6. Install the package with `pip install -e .amanuensis` to enable the `aman` command
-7. Test that imports work and `aman --help` works
-8. Check if ANTHROPIC_API_KEY is set in the environment. If not, walk me through setting it up (it's required for the hooks to work)
+7. Install the mcp package: `pip install mcp`
+8. Test that imports work and `aman --help` works
+9. Check if ANTHROPIC_API_KEY is set in the environment. If not, walk me through setting it up (it's required for the hooks to work)
 
 After setup, also explore my existing project folders and add a "foundational context" entry to the logs summarizing what projects exist here.</div>
     </div>
