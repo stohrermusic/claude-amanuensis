@@ -635,8 +635,17 @@ After setup, also explore my existing project folders and add a "foundational co
         <p>If you hit rate limits frequently, consider upgrading to a paid API tier, or increase <code>BATCH_INTERVAL_SECONDS</code> in config.py.</p>
     </div>
 
-    <div class="warning">
-        The amanuensis makes API calls for evaluations and summaries, which incurs costs. Monitor your API usage at <a href="https://console.anthropic.com">console.anthropic.com</a>.
+    <div class="card">
+        <div class="card-title">API Costs</div>
+        <p>The amanuensis requires Anthropic API credits. There's no free tier that works without adding credits.</p>
+        <ul>
+            <li><strong>Minimum purchase:</strong> $5 gets you millions of tokens</li>
+            <li><strong>Batch evaluation:</strong> ~500–1,000 tokens per batch (every 30 sec)</li>
+            <li><strong>aman topic:</strong> ~1,500 tokens per call</li>
+            <li><strong>aman remember [text]:</strong> ~500–1,000 tokens per call</li>
+        </ul>
+        <p>With typical usage, <strong>$5 should last months</strong>. Heavy usage might go through it faster, but Haiku is extremely cheap.</p>
+        <p>Monitor your usage at <a href="https://console.anthropic.com">console.anthropic.com</a>.</p>
     </div>
 
     <h2 id="philosophy">Philosophy</h2>
