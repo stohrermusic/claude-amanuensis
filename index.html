@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Amanuensis - Conversation Memory for Claude Code</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --surface: #16213e;
+            --surface-light: #1f3460;
+            --primary: #e94560;
+            --secondary: #0f3460;
+            --text: #eaeaea;
+            --text-dim: #a0a0a0;
+            --code-bg: #0d1520;
+            --success: #4ade80;
+            --warning: #fbbf24;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+            font-style: italic;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+            border-bottom: 2px solid var(--surface-light);
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            color: var(--text);
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--surface-light);
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .icon {
+            font-size: 1.3rem;
+        }
+
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.9rem;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            border: 1px solid var(--surface-light);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        ul, ol {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        .diagram {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            font-family: 'Cascadia Code', 'Fira Code', monospace;
+            font-size: 0.8rem;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.4;
+            margin: 1rem 0;
+            border: 1px solid var(--surface-light);
+        }
+
+        .prompt-box {
+            background: var(--code-bg);
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            position: relative;
+        }
+
+        .prompt-box::before {
+            content: "PASTE THIS PROMPT";
+            position: absolute;
+            top: -12px;
+            left: 1rem;
+            background: var(--primary);
+            color: white;
+            padding: 0.2rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .prompt-content {
+            font-family: 'Cascadia Code', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            color: var(--text);
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: var(--surface-light);
+            border: none;
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--primary);
+        }
+
+        .tier-visual {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }
+
+        .tier {
+            flex: 1;
+            min-width: 200px;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .tier-hot {
+            background: linear-gradient(135deg, #e94560, #c23a51);
+        }
+
+        .tier-warm {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .tier-cold {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+
+        .tier-label {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tier-desc {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .feature {
+            background: var(--surface);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .feature-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-desc {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+
+        .warning {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid var(--warning);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .warning::before {
+            content: "⚠️ ";
+        }
+
+        .success {
+            background: rgba(74, 222, 128, 0.1);
+            border: 1px solid var(--success);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .success::before {
+            content: "✓ ";
+        }
+
+        footer {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--surface-light);
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            .tier-visual {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Claude Amanuensis</h1>
+    <p class="tagline">Conversation memory for Claude Code</p>
+
+    <div class="card" style="border: 2px solid var(--primary); text-align: center;">
+        <div class="card-title" style="justify-content: center; font-size: 1.3rem;">No code. Just say the magic words.</div>
+        <p style="margin-bottom: 0;">Copy the setup prompt below, paste it into Claude Code, and watch it build your memory system from scratch.</p>
+    </div>
+
+    <div class="card">
+        <div class="card-title"><span class="icon">📜</span> What is an Amanuensis?</div>
+        <p>Historically, an <em>amanuensis</em> was a scribe who wrote from dictation — a trusted assistant who preserved important thoughts and conversations for posterity.</p>
+        <p>This digital amanuensis does the same for your Claude Code sessions. It watches your conversations, identifies meaningful moments (decisions, insights, solutions), and preserves them in a tiered log system that grows with you.</p>
+    </div>
+
+    <h2>The Problem It Solves</h2>
+    <p>Claude Code creates <code>claude.md</code> files to track code changes, but what about the <em>thinking</em> that led to those changes? The brainstorming sessions, the architectural decisions, the "aha" moments?</p>
+    <p>Without the amanuensis, valuable context is lost when sessions end. With it, you build a searchable memory of every meaningful conversation across all your projects.</p>
+
+    <h2>How It Works</h2>
+
+    <div class="diagram">┌─────────────────────┐      Hook (stdin JSON)      ┌─────────────────────┐
+│  Your Claude        │ ──────────────────────────▶ │  Amanuensis Agent   │
+│  Session            │                             │  (separate process) │
+│                     │                             │  (own API context)  │
+│  [your context]     │                             │  [isolated context] │
+└─────────────────────┘                             └──────────┬──────────┘
+                                                               │
+                                                               ▼
+                                                    ┌─────────────────────┐
+                                                    │  Tiered Log System  │
+                                                    │  ├── current.md     │
+                                                    │  ├── log-001.md     │
+                                                    │  └── superlog-001.md│
+                                                    └─────────────────────┘</div>
+
+    <p><strong>Key insight:</strong> The amanuensis runs as a <em>separate process</em> with its own Claude API calls. This means it has its own context window and doesn't consume any of your main session's context budget.</p>
+
+    <h3>Tiered Memory System</h3>
+    <div class="tier-visual">
+        <div class="tier tier-hot">
+            <div class="tier-label">🔥 Hot Tier</div>
+            <div class="tier-desc">current.md<br>Recent, detailed logs</div>
+        </div>
+        <div class="tier tier-warm">
+            <div class="tier-label">🌡️ Warm Tier</div>
+            <div class="tier-desc">log-NNN.md<br>Summarized archives</div>
+        </div>
+        <div class="tier tier-cold">
+            <div class="tier-label">❄️ Cold Tier</div>
+            <div class="tier-desc">superlog-NNN.md<br>Compacted summaries</div>
+        </div>
+    </div>
+
+    <p>When <code>current.md</code> exceeds ~50KB, it's summarized and archived. Every 5 archived logs get compacted into a superlog. This gives you both immediate detail and long-term searchability.</p>
+
+    <h2>Features</h2>
+
+    <div class="feature-grid">
+        <div class="feature">
+            <div class="feature-title">🎯 Meaningful Moment Detection</div>
+            <div class="feature-desc">AI evaluates each exchange for decisions, insights, and important context worth preserving.</div>
+        </div>
+        <div class="feature">
+            <div class="feature-title">🔍 Full-Text Search</div>
+            <div class="feature-desc">Search across all logs instantly to find past discussions on any topic.</div>
+        </div>
+        <div class="feature">
+            <div class="feature-title">🧠 AI-Powered Recall</div>
+            <div class="feature-desc">Ask Claude to synthesize everything you've discussed about a topic.</div>
+        </div>
+        <div class="feature">
+            <div class="feature-title">⭐ Manual Highlights</div>
+            <div class="feature-desc">Explicitly mark important information for future reference.</div>
+        </div>
+        <div class="feature">
+            <div class="feature-title">🔒 Context Isolation</div>
+            <div class="feature-desc">Runs separately — never impacts your main session's context limits.</div>
+        </div>
+        <div class="feature">
+            <div class="feature-title">📁 Cross-Project Memory</div>
+            <div class="feature-desc">One unified memory across all projects in your watched folder.</div>
+        </div>
+    </div>
+
+    <h2>User Guide</h2>
+
+    <h3>Automatic Logging</h3>
+    <p>Once installed, the amanuensis works automatically. Just use Claude Code normally in any subfolder of your watched directory. Meaningful moments are captured without any action on your part.</p>
+
+    <h3>Commands</h3>
+
+    <div class="card">
+        <div class="card-title">Search for past conversations</div>
+        <pre><code>aman search "topic or keywords"</code></pre>
+        <p>Returns matching excerpts from all logs, ranked by relevance.</p>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Summarize work on a topic</div>
+        <pre><code>aman topic "topic"</code></pre>
+        <p>Uses Claude to synthesize everything you've done and discussed about a topic.</p>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Remember something</div>
+        <pre><code>aman remember                       # saves last 3 interactions verbatim, no AI
+aman remember &lt;literally anything&gt;  # passed to AI for contextual interpretation</code></pre>
+        <p>With no arguments, saves recent interactions verbatim. With any text, the AI interprets what you mean and saves appropriately.</p>
+    </div>
+
+    <h3>Viewing Logs</h3>
+    <p>Logs are stored in <code>.amanuensis/logs/</code>:</p>
+    <ul>
+        <li><code>current.md</code> — Active log (most recent)</li>
+        <li><code>log-001.md</code>, <code>log-002.md</code>, ... — Archived logs with summaries</li>
+        <li><code>superlog-001.md</code>, ... — Compacted superlogs</li>
+        <li><code>index.json</code> — Metadata and quick reference</li>
+    </ul>
+
+    <h3>Configuration</h3>
+    <p>Edit <code>.amanuensis/agent/config.py</code> to adjust:</p>
+    <ul>
+        <li><code>COMPACT_THRESHOLD_BYTES</code> — When to archive (default: 50KB)</li>
+        <li><code>SUPERLOG_INTERVAL</code> — Logs per superlog (default: 5)</li>
+        <li><code>MEANINGFUL_THRESHOLD</code> — Capture aggressiveness 0.0-1.0 (default: 0.8)</li>
+        <li><code>MODEL</code> — Claude model for summarization</li>
+    </ul>
+
+    <h2>Set Up Your Own Amanuensis</h2>
+
+    <h3>Requirements</h3>
+    <ul>
+        <li>Claude Code CLI installed</li>
+        <li>Python 3.10+</li>
+        <li><code>ANTHROPIC_API_KEY</code> environment variable set</li>
+        <li>The <code>anthropic</code> Python package (<code>pip install anthropic</code>)</li>
+    </ul>
+
+    <h3>Quick Setup</h3>
+    <p>Start a new Claude Code session in your desired root folder (e.g., where all your projects live) and paste this prompt:</p>
+
+    <div class="prompt-box">
+        <button class="copy-btn" onclick="copyPrompt()">Copy</button>
+        <div class="prompt-content" id="setup-prompt">I want you to create an "amanuensis" — a conversation memory system for Claude Code.
+
+**What it does:**
+- Automatically logs meaningful moments from my Claude conversations (decisions, insights, solutions)
+- Uses Claude Code hooks (Stop and SessionEnd events) to capture conversations
+- Runs as a SEPARATE PROCESS with its own API calls, so it doesn't impact my main session's context
+- Stores logs in a tiered system: current.md → archived logs → superlogs (compacted every 5 logs)
+- Provides CLI commands to query conversation history via the `aman` command
+
+**Architecture:**
+- Hook configuration in `.claude/settings.json`
+- Agent scripts in `.amanuensis/agent/` (config.py, process_turn.py, session_end.py, compact.py, search.py)
+- Logs in `.amanuensis/logs/` (current.md, log-NNN.md, superlog-NNN.md, index.json)
+- pyproject.toml for CLI entry point (`aman` command)
+
+**Key settings:**
+- Compact threshold: ~50KB
+- Superlog interval: every 5 logs
+- Meaningful threshold: 0.8 (aggressive capture)
+- Model: claude-sonnet-4-20250514 for summarization
+- API key from ANTHROPIC_API_KEY environment variable
+
+**The hooks should:**
+1. Stop hook (process_turn.py): Read latest exchange from transcript, evaluate meaningfulness with separate Claude API call, append worthy content to current.md
+2. SessionEnd hook (session_end.py): Mark session end, update index, check compaction
+
+**Commands to support (via `aman` CLI):**
+- `aman search "query"` — full-text search across all logs
+- `aman topic "topic"` — AI-synthesized summary of what's been done on a topic
+- `aman remember` — saves last 3 interactions verbatim, no AI involved
+- `aman remember <literally anything>` — passed to AI for contextual interpretation
+
+Please create this complete system in my current directory. Make sure to:
+1. Create all necessary folders
+2. Write all Python scripts
+3. Create pyproject.toml with `aman` as the CLI entry point
+4. Configure the hooks in .claude/settings.json
+5. Initialize the log files
+6. Install the package with `pip install -e .amanuensis` to enable the `aman` command
+7. Test that imports work and `aman --help` works
+
+After setup, also explore my existing project folders and add a "foundational context" entry to the logs summarizing what projects exist here.</div>
+    </div>
+
+    <div class="success">
+        After pasting, Claude will create the entire system, configure hooks, and bootstrap it with context about your existing projects.
+    </div>
+
+    <div class="warning">
+        After setup completes, <strong>restart your Claude Code session</strong> for the hooks to take effect. The hooks are read when Claude Code starts.
+    </div>
+
+    <h3>Manual Setup (if preferred)</h3>
+    <p>If you prefer to set it up manually, you'll need to create:</p>
+    <ol>
+        <li>Folder structure: <code>.amanuensis/agent/</code> and <code>.amanuensis/logs/</code></li>
+        <li>Python scripts: config.py, compact.py, process_turn.py, session_end.py, search.py</li>
+        <li>Hook configuration: <code>.claude/settings.json</code></li>
+        <li>Initial log files: current.md and index.json</li>
+    </ol>
+    <p>The full source code can be generated by Claude using the prompt above, or you can examine an existing installation.</p>
+
+    <h2>Troubleshooting</h2>
+
+    <div class="card">
+        <div class="card-title">Hooks not firing?</div>
+        <ul>
+            <li>Verify <code>.claude/settings.json</code> exists in your root folder</li>
+            <li>Check that Python paths in the hook commands are correct</li>
+            <li>Ensure you're running Claude in a subfolder of the watched directory</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <div class="card-title">API errors?</div>
+        <ul>
+            <li>Verify <code>ANTHROPIC_API_KEY</code> is set in your environment</li>
+            <li>Check <code>.amanuensis/logs/errors.log</code> for details</li>
+            <li>Ensure the <code>anthropic</code> package is installed</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Nothing being logged?</div>
+        <ul>
+            <li>The amanuensis filters for "meaningful" content — routine exchanges may not meet the threshold</li>
+            <li>Try lowering <code>MEANINGFUL_THRESHOLD</code> in config.py (e.g., to 0.5)</li>
+            <li>Use the highlight command to manually add important content</li>
+        </ul>
+    </div>
+
+    <div class="warning">
+        The amanuensis makes API calls for each evaluation, which incurs costs. With aggressive capture (0.8 threshold) and frequent Claude usage, monitor your API usage.
+    </div>
+
+    <h2>Philosophy</h2>
+    <p>The amanuensis embodies a simple idea: <strong>conversations have value beyond their immediate outcome</strong>.</p>
+    <p>Code gets committed. Decisions get made. But the <em>reasoning</em> — the exploration, the trade-offs considered, the paths not taken — often vanishes when a session ends.</p>
+    <p>By preserving meaningful moments automatically, the amanuensis lets you build on past thinking rather than rediscovering it. It's institutional memory for your solo projects, or a knowledge base for your team.</p>
+    <p>The tiered compression ensures this memory stays useful as it grows: recent detail when you need it, compressed wisdom when you're searching the past.</p>
+
+    <footer>
+        <p>Claude Amanuensis — Built with Claude Code</p>
+        <p>A scribe for the age of AI pair programming</p>
+    </footer>
+
+    <script>
+        function copyPrompt() {
+            const prompt = document.getElementById('setup-prompt').innerText;
+            navigator.clipboard.writeText(prompt).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = 'Copy', 2000);
+            });
+        }
+    </script>
+</body>
+</html>
