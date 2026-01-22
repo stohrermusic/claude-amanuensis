@@ -6,9 +6,9 @@ Conversation memory for Claude Code.
 
 ## What is it?
 
-An amanuensis was a scribe who wrote from dictation — a trusted assistant who preserved important thoughts for posterity.
+A memory system for Claude Code. It watches your conversations, identifies meaningful moments (decisions, insights, solutions), and preserves them in a searchable log system.
 
-Claude Amanuensis does the same for your Claude Code sessions. It watches your conversations, identifies meaningful moments (decisions, insights, solutions), and preserves them in a searchable log system.
+([What's an amanuensis?](https://en.wikipedia.org/wiki/Amanuensis))
 
 ## How to install
 
