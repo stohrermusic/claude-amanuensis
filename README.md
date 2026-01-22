@@ -6,7 +6,7 @@ Conversation memory for Claude Code.
 
 ## What is it?
 
-A memory system for Claude Code. It watches your conversations, identifies meaningful moments (decisions, insights, solutions), and preserves them in a searchable log system.
+A memory system for Claude Code. It watches your conversations, identifies meaningful moments (decisions, insights, solutions), and preserves them in a searchable log system (stored locally).
 
 ([What's an amanuensis?](https://en.wikipedia.org/wiki/Amanuensis))
 
