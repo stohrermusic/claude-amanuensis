@@ -611,8 +611,20 @@ After setup, also explore my existing project folders and add a "foundational co
         </ul>
     </div>
 
+    <div class="card">
+        <div class="card-title">Rate Limits (especially free tier)</div>
+        <p>The free API tier allows only <strong>5 requests per minute</strong>. To work within this limit, the amanuensis:</p>
+        <ul>
+            <li><strong>Buffers exchanges</strong> instead of evaluating in real-time</li>
+            <li><strong>Batch processes</strong> every 30 seconds (configurable in config.py)</li>
+            <li><strong>Shows friendly errors</strong> if rate limits are hit on aman commands</li>
+        </ul>
+        <p>During rapid coding sessions, some exchanges may be buffered and processed slightly later. This is normal.</p>
+        <p>If you hit rate limits frequently, consider upgrading to a paid API tier, or increase <code>BATCH_INTERVAL_SECONDS</code> in config.py.</p>
+    </div>
+
     <div class="warning">
-        The amanuensis makes API calls for each evaluation, which incurs costs. With aggressive capture (0.8 threshold) and frequent Claude usage, monitor your API usage.
+        The amanuensis makes API calls for evaluations and summaries, which incurs costs. Monitor your API usage at <a href="https://console.anthropic.com">console.anthropic.com</a>.
     </div>
 
     <h2 id="philosophy">Philosophy</h2>
