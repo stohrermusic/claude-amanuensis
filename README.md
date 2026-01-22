@@ -24,6 +24,7 @@ That's it. Claude builds the entire system for you.
 - Claude Code CLI
 - Python 3.10+
 - `ANTHROPIC_API_KEY` environment variable
+- **Anthropic API credits** — $5 minimum purchase, should last months unless you're an exceptionally heavy user
 
 ## Commands
 
